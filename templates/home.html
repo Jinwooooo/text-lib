@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <!-- 부트스트랩 CDN 추가 -->
+     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+     <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    
+    <title>TEXT-lib | HOME</title>
+
+    <style>
+      .user-svg{
+        text-align: right;
+      }
+
+      .user{
+        padding: 20px;
+        margin: 10px;
+        border: 1px solid;
+        text-align: right;
+        position: relative;
+        max-width: 500px;
+        margin-left: auto;
+        border-radius: 5px;
+      }
+
+      .gpt{
+        max-width: 500px; /* 원하는 최대 너비 설정 */
+        word-wrap: break-word;
+        text-align: left;
+        background-color: #a6e3e9;
+        padding: 20px;
+        margin: 10px;
+        border: 1px solid;
+        border-radius: 5px;
+      }
+
+      li{
+          list-style: none;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+      }
+
+      .sidebar{
+        position: absolute;
+        left: 0;
+        width: 15%;
+        height: 100%;
+        background-color: #72a2da;
+        overflow-y: auto;
+      }
+      
+      .sidebar::-webkit-scrollbar{
+        width: 0;
+      }
+  
+      .profile{
+          position: absolute;
+          top: 0.8%;
+          right: 1%;
+          flex-direction: column;
+      }
+  
+      .profile > img {
+          width: 35px;
+          height: 35px;
+          border-radius: 50%;
+      }
+  
+      .chat-page {
+        float: right;
+        width: 85%;
+        height: 97vh;
+        background-color: #fff;
+      }
+  
+      .chat-header {
+        background-color: #36485d;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        font-size: 18px;
+      }
+  
+      .main-header {
+          background-color: #36485d;
+          color: #fff;
+          padding: 10px;
+          text-align: center;
+          font-size: 18px;
+        }
+  
+      .sidebar-header {
+          background-color: #000000;
+          color: #fff;
+          padding: 10px;
+          text-align: center;
+          font-size: 18px;
+        }
+  
+      .sidebar-proceeding > li, .sidebar-finish > li{
+        border: solid;
+        margin: 10px;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .sidebar-proceeding > li:hover, .sidebar-finish > li:hover{
+        background-color: #8CC0D6;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+      }
+
+      .chat-messages {
+        padding: 10px;
+        height: 80vh;
+        overflow-y: scroll;
+      }
+  
+      .user-input {
+        display: flex;
+        padding: 10px;
+        background-color: #f9f9f9;
+      }
+  
+      #user-message {
+        flex-grow: 1;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+  
+      #send-button, #listen-button {
+        background-color: #36485d;
+        color: #fff;
+        border: none;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      #listen-button {
+        width: 100%;
+      }
+      
+      .main-page ul{
+          text-align: center;
+          margin-top: 30px;
+      }
+  
+      .main-page li{
+        display: inline-block;
+        width: 150px;
+        height: 150px;
+        border: solid;
+        margin: 10px;
+        line-height:3;
+        border-radius: 10px
+      }
+      .main-page li:hover{
+        background-color: #c5eafa;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+      }
+
+      .keywords {
+        margin: auto 5px auto 5px;
+      }
+    </style>
+
+  <script>
+    let chatMode = false;
+
+    $(document).ready(function() {
+          // 프로필 이미지를 클릭했을 때 모달 창을 열기 위한 이벤트 핸들러
+                $('#profileImg').click(function() {
+                    $('#profileModal').modal('show');  // jQuery를 사용하여 모달 창을 수동으로 열기
+                    
+                });
+
+        $.ajax({
+            type: "GET",
+            url: "/game",
+            data: {},
+            success: function(response){
+              let db_game = response["games"];
+              let procount = response["pro_count"];
+              for (let i = 0; i < db_game.length; i++) {
+                makeCard(db_game[i]["game_title"], db_game[i]['game_story_ctr'], db_game[i]['game_status'], db_game[i]['game_id'])
+                makeList(db_game[i]["game_title"], db_game[i]['game_story_ctr'], db_game[i]['game_status'], db_game[i]['game_id'])
+              }
+              if(procount==1){
+                $("#newGame").hide();
+                $("#newGame2").hide();
+              }
+            }
+          })
+      });
+
+      function makeCard(title, story_ctr, status, game_id) {
+
+        let temp_html = `<li onclick="chatOpen(${game_id}, ${story_ctr}, '${title}', ${status})" type="button">${title}<br>${story_ctr}/20</li>`;
+
+        if(status == 0){
+            $(".proceeding-game").append(temp_html);
+        }
+        else{
+          $(".finish-game").append(temp_html);
+          $ul = $(".finish-game");
+          const $liElements = $ul.children('li');
+          if ($liElements.length > 5) {
+            $liElements.slice(0, $liElements.length - 5).remove();
+          }
+        }
+      }
+
+        function makeList(title, story_ctr, status, game_id) {
+
+        let temp_html = `<li onclick="chatOpen(${game_id}, ${story_ctr}, '${title}', ${status})" type="button">${title}</li>`;
+
+        if(status == 0){
+            $(".sidebar-proceeding").append(temp_html);
+        }
+        else{
+            $(".sidebar-finish").append(temp_html);
+        }
+      }
+
+    function sendMessage(now_id, now_ctr, status, user_id) {
+        let user_message = $("#user-message").val();
+
+        if (user_message == ""){
+            return;
+        }
+
+        $(".user-input").remove();
+        $(".chat-messages").append(`<div class="spinner-border" role="status">
+                                    <span class="sr-only"></span>
+                                  </div>`);
+
+        $.ajax({
+            type: "POST",
+            url: "/story",
+            data: {'game_id':now_id, 'story_ctr':now_ctr, 'story_stm':user_message},
+            success: function(response){
+              if (response["result"] == "success") {
+                $(".spinner-border").remove();
+                now_title = $(".chat-header").text();
+                let new_ctr = parseInt(response["updated"]);
+                chatOpen(now_id, new_ctr, now_title, status);
+              } else {
+                  alert(response["description"])
+              }
+            }
+        })
+
+        $("#user-message").val("")
+    }
+
+
+    function sendMessageTimeout(now_id, now_ctr, status, user_id) {
+        let user_message = "패스";
+
+        $(".user-input").remove();
+        $(".chat-messages").append(`<div class="spinner-border" role="status">
+                                    <span class="sr-only"></span>
+                                  </div>`);
+
+        $.ajax({
+            type: "POST",
+            url: "/story",
+            data: {'game_id':now_id, 'story_ctr':now_ctr, 'story_stm':user_message},
+            success: function(response){
+              if (response["result"] == "success") {
+                $(".spinner-border").remove();
+                now_title = $(".chat-header").text();
+                let new_ctr = parseInt(response["updated"]);
+                chatOpen(now_id, new_ctr, now_title, status);
+              } else {
+                  alert(response["description"])
+              }
+            }
+        })
+
+        $("#user-message").val("")
+    }
+
+    // Update 08:27
+    //// 손들기 버튼을 눌렀는데 릴레이 로그가 최근 상태가 아닐 때 갱신하도록 도와주는 기능 추가
+    function listenMessage(now_id, now_ctr, status) {
+      let user_id = "{{ user_id }}";
+
+      $.ajax({
+            type: "POST",
+            url: "/hand",
+            data: {'game_id': now_id, 'recent_li': $('.chat-messages li').length},
+            success: function(response){
+              if (response["canListening"]) {
+                $("#listen-button").remove();
+
+                // socketTODO
+                let chat_beforeListen = `<input type="text" id="user-message" placeholder="이야기를 이어나가세요..." onKeypress="if(window.event.keyCode==13){sendMessage(${now_id}, ${now_ctr}, ${status}, '${user_id}')}">`
+                let chat_afterListen = `<button id="send-button" onclick="sendMessage(${now_id}, ${now_ctr}, ${status}, '${user_id}')"> 보내기 </button>`
+                //
+                
+                $(".user-input").prepend(chat_beforeListen);
+                $(".user-input").append(chat_afterListen);
+                $('.chat-messages li:nth-last-child(1)').text(`${response["last_story"]}`);
+              } else {
+                alert(response["description"])
+                chatOpen(now_id, now_ctr, $(".chat-header").text(), status);
+              }
+            }
+        })
+        // 원래는 1분동안 입력하도록 했으나, 테스트를 위해 3초로 줄임
+        setTimeout(sendMessageTimeout, 3000, now_id, now_ctr, status, user_id)
+    }
+
+
+    function newGame(){
+        $.ajax({
+            type: "POST",
+            url: "/game",
+            data: {},
+            success: function(response){
+            if (response["result"] == "success") {
+              location.reload(true);
+            } else {
+                alert("서버 오류!")
+            }
+            }
+        })
+    }
+
+    function chatOpen(id, ctr, title, status){
+        $.ajax({
+            type: "GET",
+            url: "/story",
+            data: {'now_game_id': id},
+            success: function(response) {
+                let db_story = response["stories"];
+                let story_str = '';
+
+                // Update 06:32
+                // 문장 나열한 채팅창에 유저 이름을 표시하기 위해
+                // /user-svg에 ${db_story[i][2]} 추가
+                //// 번갈아가며 표시해두는게 아니라 유저네임이 AI인 경우에만 왼쪽이도록 수정
+                for (let i = 0; i < db_story.length; i++) {
+                  if (db_story[i][2] == "AI"){
+                    story_str = story_str + `<div><svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="30" height="30" viewBox="0 0 30 30">
+                      <path d="M 14.070312 2 C 11.330615 2 8.9844456 3.7162572 8.0390625 6.1269531 C 6.061324 6.3911222 4.2941948 7.5446684 3.2773438 9.3066406 C 1.9078196 11.678948 2.2198602 14.567816 3.8339844 16.591797 C 3.0745422 18.436097 3.1891418 20.543674 4.2050781 22.304688 C 5.5751778 24.677992 8.2359331 25.852135 10.796875 25.464844 C 12.014412 27.045167 13.895916 28 15.929688 28 C 18.669385 28 21.015554 26.283743 21.960938 23.873047 C 23.938676 23.608878 25.705805 22.455332 26.722656 20.693359 C 28.09218 18.321052 27.78014 15.432184 26.166016 13.408203 C 26.925458 11.563903 26.810858 9.4563257 25.794922 7.6953125 C 24.424822 5.3220082 21.764067 4.1478652 19.203125 4.5351562 C 17.985588 2.9548328 16.104084 2 14.070312 2 z M 14.070312 4 C 15.226446 4 16.310639 4.4546405 17.130859 5.2265625 C 17.068225 5.2600447 17.003357 5.2865019 16.941406 5.3222656 L 12.501953 7.8867188 C 12.039953 8.1527187 11.753953 8.6456875 11.751953 9.1796875 L 11.724609 15.146484 L 9.5898438 13.900391 L 9.5898438 8.4804688 C 9.5898438 6.0104687 11.600312 4 14.070312 4 z M 20.492188 6.4667969 C 21.927441 6.5689063 23.290625 7.3584375 24.0625 8.6953125 C 24.640485 9.696213 24.789458 10.862812 24.53125 11.958984 C 24.470201 11.920997 24.414287 11.878008 24.351562 11.841797 L 19.910156 9.2773438 C 19.448156 9.0113437 18.879016 9.0103906 18.416016 9.2753906 L 13.236328 12.236328 L 13.248047 9.765625 L 17.941406 7.0546875 C 18.743531 6.5915625 19.631035 6.4055313 20.492188 6.4667969 z M 7.5996094 8.2675781 C 7.5972783 8.3387539 7.5898438 8.4087418 7.5898438 8.4804688 L 7.5898438 13.607422 C 7.5898438 14.141422 7.8729844 14.635297 8.3339844 14.904297 L 13.488281 17.910156 L 11.34375 19.134766 L 6.6484375 16.425781 C 4.5094375 15.190781 3.7747656 12.443687 5.0097656 10.304688 C 5.5874162 9.3043657 6.522013 8.5923015 7.5996094 8.2675781 z M 18.65625 10.865234 L 23.351562 13.574219 C 25.490562 14.809219 26.225234 17.556313 24.990234 19.695312 C 24.412584 20.695634 23.477987 21.407698 22.400391 21.732422 C 22.402722 21.661246 22.410156 21.591258 22.410156 21.519531 L 22.410156 16.392578 C 22.410156 15.858578 22.127016 15.364703 21.666016 15.095703 L 16.511719 12.089844 L 18.65625 10.865234 z M 15.009766 12.947266 L 16.78125 13.980469 L 16.771484 16.035156 L 14.990234 17.052734 L 13.21875 16.017578 L 13.228516 13.964844 L 15.009766 12.947266 z M 18.275391 14.853516 L 20.410156 16.099609 L 20.410156 21.519531 C 20.410156 23.989531 18.399687 26 15.929688 26 C 14.773554 26 13.689361 25.54536 12.869141 24.773438 C 12.931775 24.739955 12.996643 24.713498 13.058594 24.677734 L 17.498047 22.113281 C 17.960047 21.847281 18.246047 21.354312 18.248047 20.820312 L 18.275391 14.853516 z M 16.763672 17.763672 L 16.751953 20.234375 L 12.058594 22.945312 C 9.9195938 24.180312 7.1725 23.443687 5.9375 21.304688 C 5.3595152 20.303787 5.2105423 19.137188 5.46875 18.041016 C 5.5297994 18.079003 5.5857129 18.121992 5.6484375 18.158203 L 10.089844 20.722656 C 10.551844 20.988656 11.120984 20.989609 11.583984 20.724609 L 16.763672 17.763672 z"></path>
+                      </svg></div><li class='gpt'>${db_story[i][1]}</li>`
+                    } else {
+                    story_str = story_str + `<div class='user-svg'>${db_story[i][2]}<img src="https://lh3.google.com/u/0/ogw/ANLem4Y8vOt5P1qSi_Icubnlb8Te4H3IP6-JNXLl-_Py=s32-c-mo"></div><li class='user'>${db_story[i][1]}</li>`
+                  }
+                }
+
+
+                let chat_title = `<div class="chat-page"><div class="chat-header">${title}</div>
+                <ul class="chat-messages">
+                ${story_str}
+                </ul>`;
+
+                // socketTODO
+                let chat_footer = `<div class="user-input">
+                <button id="listen-button" onclick="listenMessage(${id}, ${ctr}, ${status})"> 손들기 </button>
+                </div>`;
+
+                $(".main-page").hide();
+                if ($(".chat-page")) {
+                    $(".chat-page").remove();
+                };
+
+                chatMode = true;
+
+                $("body").append(chat_title);
+                if (db_story.length === 0) {
+                    chatKeywords(id, ctr, status);
+                } else if (!status) {
+                  $('.gpt').text('다음 이야기를 확인하기 위해 손들기 버튼을 눌러주세요!');
+                  $('.user').text('다음 이야기를 확인하기 위해 손들기 버튼을 눌러주세요!');
+                  $(".chat-page").append(chat_footer);
+                }
+                var chatMessages = $(".chat-messages");
+                chatMessages.scrollTop(chatMessages[0].scrollHeight);
+                chatMode = true;
+            }
+        });
+    }
+
+  function chatKeywords(now_id, now_ctr, status) {
+      const keywordnum = 5;
+      const keywordArray = [
+          '사이버펑크',
+          '역사 소설',
+          '허밍버드 판타지',
+          '사회 비판 소설',
+          '싸이코로맨스',
+          '매직 리얼리즘',
+          '고어 소설',
+          '서브마린 스릴러',
+          '바이러스 대폭발',
+          '사회 운동 소설',
+          '타임 트래블 로맨스',
+          '스팀펑크',
+          '사피엔스 소설',
+          '미스터리 스릴러',
+          '로맨틱 판타지',
+          '세계 종말 예측',
+          '동양 판타지',
+          '고전 재해석',
+          '스페이스 오페라',
+          '실화 바탕 소설'
+        ];
+
+      let randomKeywords = getRandomGenres(keywordArray, keywordnum);
+
+      for (let i = 0; i < keywordnum; i++) {
+          let temp_html = `<button class="btn btn-primary keywords" type="submit" onclick="sendKeyword(${now_id}, ${now_ctr}, ${status}, '${randomKeywords[i]}')">${randomKeywords[i]}</button>`;
+          $(".chat-messages").append(temp_html);
+      }
+  }
+
+  function sendKeyword(now_id, now_ctr, status, keyword){
+      $(".keywords").remove();
+      $(".chat-messages").append(`<div class="spinner-border" role="status">
+                                    <span class="sr-only"></span>
+                                  </div>`);
+
+      $.ajax({
+          type: "POST",
+          url: "/keyword",
+          data: {'game_id':now_id, 'story_ctr':now_ctr, 'story_keyword':keyword},
+          success: function(response){
+            if (response["result"] == "success") {
+              $(".spinner-border").remove();
+              now_title = $(".chat-header").text();
+              chatOpen(now_id, now_ctr, now_title, status);
+            } else {
+                alert(response["description"])
+                $(".spinner-border").remove();
+                now_title = $(".chat-header").text();
+                chatOpen(now_id, now_ctr, now_title, status);
+            }
+          }
+      })
+
+      $("#user-message").val("")
+  }
+
+  function goMain(){
+      if(chatMode){
+          $(".chat-page").remove();
+          $(".main-page").show();
+        chatMode = false;
+        location.reload(true);
+      }
+    }
+
+    function getRandomGenres(arr, num) {
+      const shuffled = arr.sort(() => 0.5 - Math.random());
+      return shuffled.slice(0, num);
+    }
+  </script>
+</head>
+
+
+<body>
+  <div class="profile">
+    <!-- 모달을 열기 위한 JavaScript 이벤트 추가 -->
+    <img id="profileImg" src="https://lh3.google.com/u/0/ogw/ANLem4Y8vOt5P1qSi_Icubnlb8Te4H3IP6-JNXLl-_Py=s32-c-mo" alt="profile" type="button">
+  </div>
+
+
+  <div class="sidebar">
+    <div class="sidebar-header" onclick="goMain()" type="button">TEXT-LiB</div>
+      <div class="sidebar-proceeding">
+        <h2>진행 중인 게임</h2>
+        <li class="sidebar-newGame" id="newGame" onclick="newGame()" type="button">+ 새 게임</li>
+      </div>
+      <div class="sidebar-finish">
+        <h2>종료된 게임</h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-page">
+      <div class="main-header">HOME</div>
+      <div class="proceeding">
+          <ul class="proceeding-game">
+              <h1>진행 중인 게임</h1>
+              <li onclick="newGame()" id="newGame2">새게임<br>+</li>
+          </ul>
+      </div>
+      <div class="finish">
+          <ul class="finish-game">
+              <h1>종료된 게임</h1>
+          </ul>
+      </div>
+  </div>
+  
+    <!-- 프로필 모달 창 -->
+  <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- 모달 헤더 -->
+            <div class="modal-header">
+                <img src="https://lh3.google.com/u/0/ogw/ANLem4Y8vOt5P1qSi_Icubnlb8Te4H3IP6-JNXLl-_Py=s32-c-mo" alt="profile" width="50px" height="50px" style="border-radius: 50%; text-align: center;">
+            </div>
+
+            <!-- 모달 바디 -->
+            <div class="modal-body">
+                <!-- 유저 ID 표시 -->
+                {{ user_id }}
+            </div>
+
+            <!-- 모달 푸터 -->
+            <div class="modal-footer">
+                <!-- 로그아웃 버튼 -->
+                <button type="button" class="btn btn-danger" onclick="window.location.href='/logout'">로그아웃</button>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <!-- 부트스트랩 및 Popper.js, jQuery CDN 추가 -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  
+</body>
+
+</html>
